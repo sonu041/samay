@@ -42,7 +42,8 @@ class _ClockPageState extends State<ClockPage> {
   _currentTime({int hour, int min}) {
     Duration duration = new Duration(hours: hour, minutes: min);
     DateTime dateTime = DateTime.now().toUtc().add(duration);
-    return "${dateTime.hour} : ${dateTime.minute}";
+    return _fixTime(hour: dateTime.hour, min: dateTime.minute);
+//    return "${dateTime.hour} : ${dateTime.minute}";
   }
 
   getHour({int hour, int min}) {
@@ -70,7 +71,7 @@ class _ClockPageState extends State<ClockPage> {
   }
 
   _fixTime({int hour, int min}) {
-    return "${hour} : ${min}";
+    return "${hour.toString().padLeft(2, '0')} : ${min.toString().padLeft(2, '0')}";
   }
 
   _triggerUpdate() {
@@ -102,19 +103,13 @@ class _ClockPageState extends State<ClockPage> {
       print('Time selected : ${picked.toString()}');
       try {
         setState(() {
-          //_time = picked;
           pickedHour = picked.hour;
           pickedMin = picked.minute;
-          //showTime = "${picked.hour} : ${picked.minute}";
           manualOverride = true;
-          //TimeOfDay.fromDateTime(DateTime.now()) - picked;
 
           //diff two TimeOfDay TODO: make it function
-//        double _doubleCurrentTime = DateTime.now().hour.toDouble() +
-//            (DateTime.now().minute.toDouble() / 60);
           double _doublePickedTime =
               picked.hour.toDouble() + (picked.minute.toDouble() / 60);
-//        double _doubleCurrentTime = convertTimetoDouble(time1);
           double _doubleCurrentTime = 0.0;
           if (tInstance == 't1') {
             _doubleCurrentTime = convertTimetoDouble(time1);
@@ -133,9 +128,6 @@ class _ClockPageState extends State<ClockPage> {
           //Set the time difference to the clock
           time1 = addTime(time1, _fixTime(hour: diffHour, min: diffMin));
           time2 = addTime(time2, _fixTime(hour: diffHour, min: diffMin));
-//        Duration difference = picked
-          //diffTime = picked - _current
-          // Time(hour: defaultHour, min: defaultMin);
         });
       } catch (e, s) {
         print(s);
