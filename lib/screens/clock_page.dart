@@ -17,16 +17,60 @@ class _ClockPageState extends State<ClockPage> {
   int secondHour = -4;
   int secondMin = 0;
   int diffHour, diffMin, pickedHour, pickedMin = 0;
+  int time1Hour, time1Min, time2Hour, time2Min = 0;
+  String time1, time2 = "";
   DateTime diffTime;
 
   TimeOfDay _time = new TimeOfDay.now();
   String showTime = 'HH:MM';
   bool manualOverride = false;
 
+  @override
+  void initState() {
+    super.initState();
+    seconds = DateTime.now().second / 60;
+    _triggerUpdate();
+    print('Init called');
+    //_setupTime();
+    showTime = _currentTime(hour: defaultHour, min: defaultMin);
+    diffHour = DateTime.now().hour - defaultHour;
+    diffMin = DateTime.now().minute - defaultMin;
+    time1 = _currentTime(hour: defaultHour, min: defaultMin);
+    time2 = _currentTime(hour: secondHour, min: secondMin);
+  }
+
   _currentTime({int hour, int min}) {
     Duration duration = new Duration(hours: hour, minutes: min);
     DateTime dateTime = DateTime.now().toUtc().add(duration);
     return "${dateTime.hour} : ${dateTime.minute}";
+  }
+
+  getHour({int hour, int min}) {
+    Duration duration = new Duration(hours: hour, minutes: min);
+    DateTime dateTime = DateTime.now().toUtc().add(duration);
+    return dateTime.hour;
+  }
+
+  getMin({int hour, int min}) {
+    Duration duration = new Duration(hours: hour, minutes: min);
+    DateTime dateTime = DateTime.now().toUtc().add(duration);
+    return dateTime.minute;
+  }
+
+  convertTimetoDouble(String time) {
+    List<String> value = time.split(':');
+    return (double.parse(value[0]) + double.parse(value[1]) / 60);
+  }
+
+  addTime(String t1, String t2) {
+    double time = convertTimetoDouble(t1) + convertTimetoDouble(t2);
+    int tHour = time.truncate();
+    int tMin = ((time - time.truncate()) * 60).toInt();
+    return _fixTime(hour: tHour, min: tMin);
+  }
+
+  _fixTime({int hour, int min}) {
+    return "${hour} : ${min}";
   }
 
   _triggerUpdate() {
@@ -42,57 +86,61 @@ class _ClockPageState extends State<ClockPage> {
   }
 
   _resetTime() {
+    time1 = _currentTime(hour: defaultHour, min: defaultMin);
+    time2 = _currentTime(hour: secondHour, min: secondMin);
     showTime = _currentTime(hour: defaultHour, min: defaultMin);
     print('Reset time to ${showTime}');
     manualOverride = false;
   }
 
-  Future<Null> selectTime(BuildContext context) async {
+  Future<Null> selectTime(BuildContext context, String tInstance) async {
     final TimeOfDay picked = await showTimePicker(
       context: context,
       initialTime: _time,
     );
     if (picked != null && picked != _time) {
       print('Time selected : ${picked.toString()}');
-      setState(() {
-        //_time = picked;
-        pickedHour = picked.hour;
-        pickedMin = picked.minute;
-        showTime = "${picked.hour} : ${picked.minute}";
-        manualOverride = true;
-        //TimeOfDay.fromDateTime(DateTime.now()) - picked;
+      try {
+        setState(() {
+          //_time = picked;
+          pickedHour = picked.hour;
+          pickedMin = picked.minute;
+          //showTime = "${picked.hour} : ${picked.minute}";
+          manualOverride = true;
+          //TimeOfDay.fromDateTime(DateTime.now()) - picked;
 
-        //diff two TimeOfDay TODO: make it function
-        double _doubleCurrentTime = DateTime.now().hour.toDouble() +
-            (DateTime.now().minute.toDouble() / 60);
-        double _doublePickedTime =
-            picked.hour.toDouble() + (picked.minute.toDouble() / 60);
+          //diff two TimeOfDay TODO: make it function
+//        double _doubleCurrentTime = DateTime.now().hour.toDouble() +
+//            (DateTime.now().minute.toDouble() / 60);
+          double _doublePickedTime =
+              picked.hour.toDouble() + (picked.minute.toDouble() / 60);
+//        double _doubleCurrentTime = convertTimetoDouble(time1);
+          double _doubleCurrentTime = 0.0;
+          if (tInstance == 't1') {
+            _doubleCurrentTime = convertTimetoDouble(time1);
+          } else {
+            _doubleCurrentTime = convertTimetoDouble(time2);
+          }
 
-        double _timeDiff = _doublePickedTime - _doubleCurrentTime;
-        print('timeDiff:' + _timeDiff.toString());
-        diffHour = _timeDiff.truncate();
-        diffMin = ((_timeDiff - _timeDiff.truncate()) * 60).toInt();
+          double _timeDiff = _doublePickedTime - _doubleCurrentTime;
+          print('timeDiff:' + _timeDiff.toString());
+          diffHour = _timeDiff.truncate();
+          diffMin = ((_timeDiff - _timeDiff.truncate()) * 60).toInt();
 
-        print('Time difference: $diffHour Hour and $diffMin min');
-        //TODO: Fix the precise time difference.
+          print('Time difference: $diffHour Hour and $diffMin min');
+          //TODO: Fix the precise time difference.
 
+          //Set the time difference to the clock
+          time1 = addTime(time1, _fixTime(hour: diffHour, min: diffMin));
+          time2 = addTime(time2, _fixTime(hour: diffHour, min: diffMin));
 //        Duration difference = picked
-        //diffTime = picked - _current
-        // Time(hour: defaultHour, min: defaultMin);
-      });
+          //diffTime = picked - _current
+          // Time(hour: defaultHour, min: defaultMin);
+        });
+      } catch (e, s) {
+        print(s);
+      }
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    seconds = DateTime.now().second / 60;
-    _triggerUpdate();
-    print('Init called');
-    //_setupTime();
-    showTime = _currentTime(hour: defaultHour, min: defaultMin);
-    diffHour = DateTime.now().hour - defaultHour;
-    diffMin = DateTime.now().minute - defaultMin;
   }
 
   @override
@@ -115,16 +163,15 @@ class _ClockPageState extends State<ClockPage> {
                         child: Text(
                           //_currentTime(hour: defaultHour, min: defaultMin),
                           manualOverride
-                              ? _currentTime(
-                                  hour: defaultHour + diffHour,
-                                  min: defaultMin + diffMin)
+//                          ? _fixTime(hour: )
+                              ? time1
                               : _currentTime(
-                                  hour: defaultHour, min: defaultMin),
+                                  hour: defaultHour,
+                                  min: defaultMin,
+                                ),
+//                              : _currentTime(
+//                                  hour: defaultHour, min: defaultMin),
                           style: TextStyle(fontSize: 100.0),
-//                          style: GoogleFonts.bungee(
-//                              fontSize: 100.0,
-//                              textStyle: TextStyle(color: Colors.white),
-//                              fontWeight: FontWeight.normal),
                         ),
                       ),
                       Center(
@@ -136,7 +183,7 @@ class _ClockPageState extends State<ClockPage> {
                     ],
                   ),
                   onPress: () {
-                    selectTime(context);
+                    selectTime(context, 't1');
                   },
                   colour: Color(0xFF1D1E33),
                 ),
@@ -149,16 +196,13 @@ class _ClockPageState extends State<ClockPage> {
                       Center(
                         child: Text(
                           manualOverride
-                              ? _currentTime(
-                                  hour: secondHour + diffHour,
-                                  min: secondMin + diffMin)
-                              : _currentTime(hour: secondHour, min: secondMin),
-
+                              ? time2
+//                              : _currentTime(hour: secondHour, min: secondMin),
+                              : _currentTime(
+                                  hour: secondHour,
+                                  min: secondMin,
+                                ),
                           style: TextStyle(fontSize: 100.0),
-//                          style: GoogleFonts.bungee(
-//                              fontSize: 100.0,
-//                              textStyle: TextStyle(color: Colors.white),
-//                              fontWeight: FontWeight.normal),
                         ),
                       ),
                       Center(
@@ -169,6 +213,9 @@ class _ClockPageState extends State<ClockPage> {
                       ),
                     ],
                   ),
+                  onPress: () {
+                    selectTime(context, 't2');
+                  },
                   colour: Color(0xFF1D1E33),
                 ),
               ),
